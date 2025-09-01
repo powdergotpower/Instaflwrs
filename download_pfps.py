@@ -1,36 +1,40 @@
+# download_pfps.py
+import instaloader
 import os
-import requests
 
 # Folder to save profile pictures
-SAVE_FOLDER = "profile_pics"
+SAVE_FOLDER = "pfps"
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 
-# Read usernames
-with open("usernames_only.txt", "r", encoding="utf-8") as f:
-    usernames = [line.strip() for line in f if line.strip()]
+# Initialize Instaloader
+L = instaloader.Instaloader(
+    dirname_pattern=SAVE_FOLDER,  # save in SAVE_FOLDER
+    download_videos=False,
+    download_video_thumbnails=False,
+    download_comments=False,
+    save_metadata=False,
+    post_metadata_txt_pattern="",  # no extra metadata files
+)
 
-print(f"Total usernames: {len(usernames)}")
+# Read usernames
+with open("usernames_only.txt", "r") as f:
+    usernames = [line.strip() for line in f if line.strip()]
 
 for username in usernames:
     try:
-        # Instagram public profile URL for JSON
-        url = f"https://www.instagram.com/{username}/?__a=1&__d=dis"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-        }
-        response = requests.get(url, headers=headers)
-        data = response.json()
-
-        # Extract profile picture URL
-        pic_url = data['graphql']['user']['profile_pic_url_hd']
-
-        # Download the image
-        img_data = requests.get(pic_url).content
-        filename = os.path.join(SAVE_FOLDER, f"{username}.jpg")
-        with open(filename, "wb") as img_file:
-            img_file.write(img_data)
+        # Download profile picture only
+        L.download_profile(username, profile_pic_only=True)
+        print(f"[✅] Downloaded: {username}")
         
-        print(f"Downloaded: {username}")
-    
+        # Move the profile pic to SAVE_FOLDER root
+        folder_path = os.path.join(SAVE_FOLDER, username)
+        for file in os.listdir(folder_path):
+            src = os.path.join(folder_path, file)
+            dst = os.path.join(SAVE_FOLDER, f"{username}.jpg")
+            os.rename(src, dst)
+        os.rmdir(folder_path)  # remove empty folder
+
     except Exception as e:
-        print(f"Skipping {username}: {e}")
+        print(f"[❌] Skipping {username}: {e}")
+
+print(f"\nDone! All profile pictures are in the '{SAVE_FOLDER}' folder.")
