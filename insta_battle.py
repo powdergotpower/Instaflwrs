@@ -1,17 +1,28 @@
-import instaloader
-import os
+from instagrapi import Client
 
-L = instaloader.Instaloader()
-# L.load_session_from_file('your_instagram_username')  # optional if private profiles
+# Load session
+cl = Client()
+sessionid = "YOUR_SESSIONID_HERE"  # Replace with your sessionid
+cl.set_settings({"sessionid": sessionid})
 
-os.makedirs("profile_pics", exist_ok=True)
-
+# Load usernames
 with open("usernames_only.txt", "r", encoding="utf-8") as f:
-    usernames = [line.strip() for line in f]
+    usernames = [line.strip() for line in f.readlines()]
+
+profiles = []
 
 for username in usernames:
     try:
-        profile = instaloader.Profile.from_username(L.context, username)
-        L.download_pic(f"profile_pics/{username}.jpg", profile.profile_pic_url, profile.date_joined)
+        profile = cl.user_info_by_username(username)
+        # Just get what we need: username and profile picture
+        profiles.append({
+            "username": username,
+            "profile_pic": profile.profile_pic_url
+        })
+        print(f"Loaded {username}")
     except Exception as e:
         print(f"Skipping {username}: {e}")
+
+# At this point, `profiles` contains all users with their profile pics
+# You can now pass `profiles` to your battle simulation logic
+print(f"\nTotal profiles loaded: {len(profiles)}")
